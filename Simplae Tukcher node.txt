@@ -1,0 +1,96 @@
+..................................................................................
+Index js:-
+
+const express = require('express')
+const app = express()
+const routes = require('./routers/index')
+
+// limit 
+app.use(express.json({
+    limit: '1024mb'
+}))
+app.use(express.urlencoded({
+    limit: '1024mb',
+    extended: true
+}))
+
+// api routes
+// const mongo = require('mongodb');
+app.use('/api', routes)
+
+// write process.env.PORT || 3000 because the PORT will be assigned dynamically from the server when we host the application
+// for local development we will use the port 3000
+const port = process.env.PORT || 7000;
+app.listen(port, function () {
+    console.log(`The web server has started on port ${port}`);
+    console.log("New added");
+    console.log(process.env.databaseUrl);
+});
+
+// imade 
+app.use('/data', express.static('images'))
+
+Mongodb Data Base creat:-
+
+// mongo db == Database and Collection creat
+// npm i == mongodb, dotenv
+// creat file == .env 
+const MongoClient = require('mongodb').MongoClient;
+require('dotenv').config()
+MongoClient.connect(process.env.databaseUrl, function (err, db) {
+    if (err) throw err;
+    console.log("Database created!");
+    var dbo = db.db("Practice");
+    dbo.createCollection("MyData", function (err, res) {
+        if (err) throw err;
+        console.log("Collection created!");
+        db.close();
+    });
+});
+
+...................................................................................
+.env
+databaseUrl = mongodb+srv://Bhautik:Bh%40utik%401999@cluster0.i8wq3.mongodb.net/Practice?retryWrites=true&w=majority
+
+...................................................................................
+Routers Folder
+index js:-
+
+const express = require('express')
+const router = express.Router()
+const crud = require('./file')
+router.use('/crud', crud)
+module.exports = router
+
+File js:-
+
+const express = require("express");
+const Router  = express.Router()
+const filecontroller = require('../Controllers/FileController')
+Router.get('/get-all', (req, res) => {
+    return filecontroller.crudfile.getAllData(req, res)
+})
+module.exports = Router
+
+...................................................................................
+Conttroller Folder
+Filecontroller.js :-
+
+const fs = require('fs');
+
+
+exports.crudfile = {
+    getAllData: (req, res) => {
+        const Directory = this.crudfile.getDirectoryPath()
+        fs.readFile(`${Directory}${req.query.fileName}`, 'utf-8', (err, data) => {
+            if(err)
+            {
+                return res.json(err)
+            }
+            return res.json({
+                isSuccess: true,
+                message: 'Data File',
+                fileData: JSON.parse(data)
+            })
+        })
+    },

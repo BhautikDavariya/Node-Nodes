@@ -1,0 +1,405 @@
+main inde js :- 
+const express = require('express')
+const app = express()
+
+// mongoose 
+require('dotenv').config()
+require('./config/db')
+const bodyParser = require("body-parser");
+
+// link file 
+const routes = require('./routes/index')
+
+// Swagger 
+const swaggerJson = require('./swagger/swagger.json')
+const swaggerUi = require("swagger-ui-express");
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerJson));
+
+// image 
+app.use('/data', express.static('images'))
+
+// limit 
+app.use(
+    bodyParser.json({
+        limit: '1024mb',
+    }),
+)
+app.use(
+    bodyParser.urlencoded({
+        limit: '1024mb',
+        extended: true,
+    }),
+)
+
+// api routes
+app.use('/api', routes)
+
+// write process.env.PORT || 3000 because the PORT will be assigned dynamically from the server when we host the application
+// for local development we will use the port 3000
+const port = process.env.PORT || 9000;
+app.listen(port, function () {
+    console.log(`The web server has started on port ${port}`);
+    console.log("New added")
+    console.log(process.env.databaseUrl)
+});
+...................................................................................
+
+models folder:-
+studentSchema.js:-
+
+"use strict";
+var mongoose = require("mongoose");
+
+var StudentSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    age: {
+      type: Number,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+var student = mongoose.model("student", StudentSchema);
+module.exports = student;
+
+UserSchema js:-
+
+"use strict";
+var mongoose = require("mongoose");
+
+var UserSchema = new mongoose.Schema(
+    {
+        email: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+        password: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+var user = mongoose.model("user", UserSchema);
+module.exports = user;
+
+................................................................................
+controler folder :-
+
+SudentCon.js :- 
+
+const mongoose = require('mongoose')
+const STUDENT = mongoose.model('student')
+
+exports.student = {
+    cloneDeep: (array) => {
+        return JSON.parse(JSON.stringify(array))
+    },
+    get: async (req, res) => {
+        const studentList = await STUDENT.find({})
+        return res.json({
+            isSuccess: true,
+            data: this.student.cloneDeep(studentList)
+        })
+    },
+    add: async (req, res) => {
+        const errors = {}
+        if (!req.body.firstName) {
+            errors['firstName'] = "Please enter first name"
+        }
+        if (!req.body.lastName) {
+            errors['lastName'] = "Please enter last name"
+        }
+        if (!req.body.age) {
+            errors['age'] = "Please enter age"
+        }
+        if (Object.keys(errors).length > 0) {
+            return res.json({
+                isSuccess: false,
+                validations: errors
+            })
+        }
+        const studentList = {
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            age: req.body.age,
+        }
+        const isCreated = await STUDENT.create(studentList)
+        if (!isCreated) {
+            return res.json({
+                isSuccess: false,
+                message: "Failed to add student"
+            })
+        }
+        return res.json({
+            isSuccess: true,
+            message: "Student addedd successfully"
+        })
+    },
+    update: async (req, res) => {
+        try {
+            let studentData = await STUDENT.findOne({ _id: req.body.id })
+            if (!studentData) {
+                return res.json({
+                    isSuccess: false,
+                    message: "No data found"
+                })
+            }
+            studentData = this.student.cloneDeep(studentData)
+            const errors = {}
+            if (req.body.hasOwnProperty("firstName") && !req.body.firstName) {
+                errors['firstName'] = "Please enter first name"
+            }
+            if (req.body.hasOwnProperty("lastName") && !req.body.lastName) {
+                errors['lastName'] = "Please enter last name"
+            }
+            if (req.body.hasOwnProperty("age") && !req.body.age) {
+                errors['age'] = "Please enter age"
+            }
+            if (Object.keys(errors).length > 0) {
+                return res.json({
+                    isSuccess: false,
+                    validations: errors
+                })
+            }
+            Object.keys(studentData).forEach(item => {
+                if (req.body.hasOwnProperty(item)) {
+                    studentData[item] = req.body[item]
+                }
+            })
+            const isUpdated = await STUDENT.findOneAndUpdate({
+                _id: req.body.id
+            }, studentData)
+            if (!isUpdated) {
+                return res.json({
+                    isSuccess: false,
+                    message: "Failed to update student"
+                })
+            }
+            return res.json({
+                isSuccess: true,
+                message: "Student updated successfully"
+            })
+        } catch (error) {
+            return res.json({
+                isSuccess: false,
+                message: error
+            })
+        }
+    },
+    delete: async (req, res) => {
+        try {
+            let studentData = await STUDENT.findOne({ _id: req.query.id })
+            if (!studentData) {
+                return res.json({
+                    isSuccess: false,
+                    message: "No data found"
+                })
+            }
+
+            const isDeleted = await STUDENT.findByIdAndDelete({
+                _id: req.query.id
+            })
+            if (!isDeleted) {
+                return res.json({
+                    isSuccess: false,
+                    message: "Failed to delete student"
+                })
+            }
+            return res.json({
+                isSuccess: true,
+                message: "Student deleted successfully"
+            })
+        } catch (error) {
+            return res.json({
+                isSuccess: false,
+                message: error
+            })
+        }
+    },
+}
+
+
+User.js :- 
+const mongoose = require('mongoose')
+const jwt = require("jsonwebtoken");
+const USER = mongoose.model('user')
+
+exports.user = {
+    add: async (req, res) => {
+        const isCreated = await USER.create(req.body)
+        return res.json({
+            isSuccess: true,
+            data: {
+                message: "User created successfully",
+            }
+        })
+    },
+    login: async function (req, res) {
+        try {
+            let userInfo = await USER.findOne({
+                email: req.body.email,
+            });
+            if (userInfo) {
+                if (req.body.password !== userInfo.password) {
+                    return badRequestResponse(res, {
+                        message: "Authentication failed. Wrong password.",
+                    });
+                }
+                userInfo = JSON.parse(JSON.stringify(userInfo));
+                delete userInfo["password"];
+                // create a token
+                var token = jwt.sign(userInfo, process.env.secret, {
+                    expiresIn: "24h", // expires in 24 hours
+                });
+                return res.json({
+                    isSuccess: true,
+                    data: {
+                        message: "You are logged in successfully!",
+                        token,
+                        userInfo,
+                    }
+                })
+            }
+            return res.json({
+                isSuccess: false,
+                data: {
+                    message: "Email not found!",
+                }
+            })
+        } catch (error) {
+            return res.json({
+                isSuccess: false,
+                error
+            })
+        }
+    },
+}
+.............................................................................
+
+Config folder:-
+db.js:-
+
+'use strict'
+let mongoose = require('mongoose')
+
+require('../models/studentSchema')
+require('../models/userSchema')
+
+mongoose.set('debug', (collectionName, method, query, doc) => {
+    console.log(`${collectionName}.${method}`, JSON.stringify(query), doc)
+})
+mongoose.Promise = global.Promise
+
+mongoose.connect(process.env.databaseUrl, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+})
+
+let db = mongoose.connection
+db.on('error', console.error.bind(console, 'connection failed'))
+
+db.once('open', function () {
+    console.log('Database connected successfully!')
+})
+
+...................................................................................
+middleware folder:-
+auth.js:-
+"use strict";
+const jwt = require("jsonwebtoken");
+
+const allowedUrls = [
+    "/login",
+];
+const adminUrls = [];
+
+const ensureAuthorized = (req, res, next) => {
+    if (allowedUrls.indexOf(req.path.toLowerCase()) !== -1) {
+        return next();
+    }
+    const bearerHeader = req.headers["authorization"];
+    if (
+        !(typeof bearerHeader !== "undefined" && process.env.secret) ||
+        !bearerHeader
+    ) {
+        return res.status(401).json({
+            message: "Auth token not found",
+            isSuccess: false,
+        });
+    }
+    const bearer = bearerHeader.split(" ");
+    const bearerToken = bearer[1];
+    jwt.verify(bearerToken, process.env.secret, async function (err, decoded) {
+        if (err) {
+            return res.status(401).json({
+                message: "Auth token not found",
+                error: err,
+                isSuccess: false,
+            });
+        } else {
+            req.user = decoded;
+            next();
+        }
+    });
+};
+
+module.exports = {
+    ensureAuthorized,
+};
+...........................................................................
+routers folder:-
+index.js 
+
+const express = require('express')
+const router = express.Router()
+const { ensureAuthorized } = require('../middleware/auth')
+
+
+const student = require('./student')
+const user = require('./user')
+
+
+router.use('/student', student)
+router.use('/user', ensureAuthorized, user)
+module.exports = router
+
+user.js:-
+const express = require('express')
+const router = express.Router()
+
+const userController = require('../controllers/UserController')
+
+router.post('/add', (req, res) => {
+    return userController.user.add(req, res)
+})
+
+router.post('/login', (req, res) => {
+    return userController.user.login(req, res)
+})
+
+module.exports = router
+................................................................................
+.env:-
+databaseUrl=mongodb+srv://krushit:Test%40123@cluster0.b01l9.mongodb.net/practice?retryWrites=true&w=majority
+PORT=4000
+secret=THIS IS TOP SECRET
