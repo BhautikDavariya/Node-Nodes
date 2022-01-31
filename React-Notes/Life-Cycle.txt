@@ -1,0 +1,82 @@
+life cycle
+lifecycle.jsx:-
+import Button from '@restart/ui/esm/Button';
+import React, { Component } from 'react'
+
+export class LifeCycleComponent extends Component {
+    constructor(props) {
+        super(props)
+
+        this.state = {
+            count: 0,
+            year: 0,
+            favoritecolor: "red",
+            myName: "",
+            carColor: "Yellow",
+            UpdatechengColor: "Yellow"
+        }
+        console.log('constructor');
+    }
+    static getDerivedStateFromProps(e, a) {
+        console.log('getDerivedStateFromProps');
+        // return { count: 5 };
+        return { myName: e.mName };
+    }
+    componentDidMount() {
+        console.log('componentDidMount');
+        setTimeout(() => {
+            this.setState({carColor: "Blue"}) // carcolor name 1000 second ae update kari
+          }, 1000)
+    }
+
+     // update mate 
+     changeColor = () => {
+        this.setState({UpdatechengColor: "blue"});
+      }
+    // update finish
+
+
+    // component update
+    shouldComponentUpdate(e, a) {
+        console.log('shouldComponentUpdate');
+        return false;  // jo return value false hase to component update nai thava de
+    }
+    getSnapshotBeforeUpdate(e, a) {
+        console.log('getSnapshotBeforeUpdate');
+    }
+    componentDidUpdate() {
+        console.log('componentDidUpdate');
+    }
+
+    // eRROR
+
+    static getDerivedStateFromError() {
+        debugger
+        console.log('getDerivedStateFromError');
+    }
+    componentDidCatch() {
+        debugger
+        console.log('componentDidCatch');
+    }
+    componentWillUnmount() {
+        console.log('componentWillUnmount');
+    }
+    render() {
+        console.log('render');
+        return (
+            <div>
+                <h1>My Favorite Color is {this.state.favoritecolor}</h1>
+                <h1>My Name is {this.state.myName}</h1>
+                <h1>This is the content of the Header component</h1>
+                <h1>My Car Color is {this.state.carColor}</h1>
+                <h1>My Favorite Color Chenge {this.state.UpdatechengColor}</h1>
+                <Button type="button" onClick={this.changeColor}>Change color</Button>
+            </div>
+        )
+    }
+}
+
+export default LifeCycleComponent
+...................................................................................
+app.js:-
+<LifeCycleComponent mName="Bhautik" />
