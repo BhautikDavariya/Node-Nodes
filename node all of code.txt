@@ -412,6 +412,55 @@ const ensureAuthorized = (req, res, next) => {
 module.exports = {
     ensureAuthorized,
 };
+.......
+
+controller:- 
+login: async function (req, res) {
+        try {
+            let userInfo = await USER.findOne({
+                email: req.body.email,
+            });
+            if (userInfo) {
+                if (req.body.password !== userInfo.password) {
+                    return badRequestResponse(res, {
+                        message: "Authentication failed. Wrong password.",
+                    });
+                }
+                userInfo = JSON.parse(JSON.stringify(userInfo));
+                delete userInfo["password"];
+                // create a token
+                var token = jwt.sign(userInfo, process.env.secret, {
+                    expiresIn: "24h", // expires in 24 hours
+                });
+                return res.json({
+                    isSuccess: true,
+                    data: {
+                        message: "You are logged in successfully!",
+                        token,
+                        userInfo,
+                    }
+                })
+            }
+            return res.json({
+                isSuccess: false,
+                data: {
+                    message: "Email not found!",
+                }
+            })
+        } catch (error) {
+            return res.json({
+                isSuccess: false,
+                error
+            })
+        }
+    },
+
+Routers :- 
+student.js
+
+router.post('/login', (req, res) => {
+    return userController.user.login(req, res)
+})
 ...............................................................................
 .env:-
 databaseUrl=mongodb+srv://Bhautik:Bh%40utik%401999@cluster0.i8wq3.mongodb.net/RolesUser?retryWrites=true&w=majority
